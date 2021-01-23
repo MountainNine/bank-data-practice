@@ -33,13 +33,6 @@ get_delay_score <- function(delay_new) {
   return(result_score)
 }
 
-## 단기연체 발생(-100)
-## 장기연체 발생(-100)
-## 연체 진행 일수 경과(월에 -100/-10)
-## 연체 해제(+100)
-## 연체 해제 일수 경과(월에 +10)
-
-## 신용거래 경과 기간
 
 count_cdopn <- count(df_cdopn, JOIN_KEY, COM_KEY, CD_OPN_YM)
 df_cdopn_new <- count_cdopn %>%
@@ -47,7 +40,8 @@ df_cdopn_new <- count_cdopn %>%
   summarize(cd_cnt = min(CD_OPN_YM))
 df_result <- merge(df_id, df_cdopn_new, by = "JOIN_KEY", all.x = TRUE)
 df_result$cd_cnt <- as.integer(2019 - as.integer(df_result$cd_cnt / 100))
-rm("df_cdopn_new", "count_cdopn")
+df_result$cd_cnt <- df_result$cd_cnt*10
+rm("df_cdopn_new", "count_cdopn", "cd_cnt")
 
 ## 장기, 단기 연체 발생 여부
 
