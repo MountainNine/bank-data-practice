@@ -107,3 +107,20 @@ df_loan_delay$loan_score <- get_loan_score(df_loan_delay)
 df_loan_final <- df_loan_delay %>% group_by(JOIN_KEY) %>% summarise(loan_score=sum(loan_score))
 df_result <- merge(df_result, df_loan_final, by="JOIN_KEY", all.x = TRUE)
 df_result[is.na(df_result$loan_score),]$loan_score <- 0
+
+##최종 점수
+
+df_result$final_score <- 700 + ifelse(df_result$long_delay == 1,
+                                df_result$cd_score / 100 * 9.4 + df_result$dlq_score / 100 * 47.8 + df_result$loan_score / 100 * 42.8,
+                                 df_result$cd_score / 100 * 15 + df_result$dlq_score / 100 * 45 + df_result$loan_score / 100 * 40)
+df_final <- df_result[,c("JOIN_KEY","final_score")]
+rm(list = setdiff(ls(), c("df_final", "df_result")))
+df_final[df_final$final_score > 1000,]$final_score <- 1000
+df_final[df_final$final_score < 0,]$final_score <- 0
+df_final$final_score <- df_final$final_score - df_final$final_score %% 100
+df_final_count <- count(df_final, final_score)
+
+##실제 비중
+real_rate <- c(39.53,26.07,26.94,1.72,0.38,0.16,4.69,0.45,0.06)
+# 39.53 26.07 26.94  1.72  0.38  0.16  4.69  0.45  0.02
+real_rate / 46709542 * 100
