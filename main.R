@@ -37,13 +37,20 @@ get_delay_score <- function(delay_new) {
   return(result_score)
 }
 
-get_loan_score <- function(df_loan) {
+get_loan_score <- function(df_loan_new) {
   result_score <- -10
   current_date <- as.Date('20181201', format = "%Y%m%d")
-  ln_amt <- df_loan$LN_AMT
-  end_ym <- df_loan$YM
-
+  ln_amt <- df_loan_new$LN_AMT
+  end_ym <- df_loan_new$YM.x
+  long_delay <- df_loan_new$long_delay
+  result_score <- result_score - (ln_amt * 0.001)
+  result_score <- ifelse(end_ym < current_date & is.na(df_loan_new$DLQ_YM),
+                         ifelse(!is.na(long_delay) & long_delay, 10, 100),
+                         0) + result_score
+  return(result_score)
 }
+
+##대출 발생 시 -10 + (대출액 * 0.001) 대출 상환 시 +100(위험군은 +10)
 
 ## 장기, 단기 연체 발생 여부
 
@@ -83,12 +90,20 @@ rm("df_cdopn_new", "count_cdopn")
 df_loan_new <- df_loan %>% group_by(JOIN_KEY, COM_KEY, SCTR_CD, LN_CD_1, LN_CD_2, LN_YM, LN_AMT) %>%
   summarise(cnt= n(), YM = max(YM))
 df_loan_delay <- merge(df_loan_new, df_delay_new, by=c("JOIN_KEY", "COM_KEY"), all.x = TRUE)
+rm(df_loan_new)
 df_loan_delay$YM.x <- paste0(as.character(df_loan_delay$YM.x), "01")
 df_loan_delay$YM.x <- as.Date(df_loan_delay$YM.x, format = "%Y%m%d")
 df_loan_delay$LN_YM <- paste0(as.character(df_loan_delay$LN_YM), "01")
 df_loan_delay$LN_YM <- as.Date(df_loan_delay$LN_YM, format = "%Y%m%d")
 df_loan_delay$ln_cnt <- get_month_diff(df_loan_delay$YM.x,df_loan_delay$LN_YM) + 1
-df_loan_second <- merge(df_loan_new, df_result[,c("JOIN_KEY","long_delay")],
-                        by="JOIN_KEY", all.x = TRUE)
-rm(df_loan_new)
-df_loan_score <- get_loan_score(df_loan_second)
+
+df_loan_delay$long_delay <- ifelse(is.na(df_loan_delay$long_delay), FALSE, df_loan_delay$long_delay)
+df_long_delay <- df_loan_delay %>% group_by(JOIN_KEY) %>% summarise(long_delay=sum(long_delay))
+df_loan_delay <- merge(df_loan_delay, df_long_delay, by="JOIN_KEY", all.x=TRUE)
+df_loan_delay <- df_loan_delay[, -15]
+colnames(df_loan_delay)[17] <- "long_delay"
+df_loan_delay$loan_score <- get_loan_score(df_loan_delay)
+
+df_loan_final <- df_loan_delay %>% group_by(JOIN_KEY) %>% summarise(loan_score=sum(loan_score))
+df_result <- merge(df_result, df_loan_final, by="JOIN_KEY", all.x = TRUE)
+df_result[is.na(df_result$loan_score),]$loan_score <- 0
