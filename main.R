@@ -7,6 +7,12 @@ df_loan <- read.csv("./data/LN.csv")
 df_delay <- read.csv("./data/DLQ.csv")
 df_cdopn <- read.csv("./data/CDOPN.csv")
 
+rate_amt <- 0.001
+rate_single <- 10
+rate_double <- 100
+
+# 비율들 -> 점수대 비율
+
 df_id$age <- as.integer((2018 - df_id$BTH_YR) / 10)
 
 get_month_diff <- function(datetime_1, datetime_2) {
@@ -23,29 +29,29 @@ get_delay_score <- function(delay_new) {
   dlq_amt <- delay_new$DLQ_AMT
   end_ym <- delay_new$YM
   delay_cnt <- delay_new$delay_cnt
-  result_score <- ifelse(delay_cnt < 4, result_score + (-100 * delay_cnt + (-0.001 * dlq_amt)),
-                         result_score + (-400 +
-                           (-10 * (delay_cnt - 4)) +
-                           (-0.001 * dlq_amt)))
+  result_score <- ifelse(delay_cnt < 4, result_score + (-1 * rate_double * delay_cnt - (rate_amt * dlq_amt)),
+                         result_score + (-4 * rate_double +
+                           (-1 * rate_single * (delay_cnt - 4)) -
+                           (rate_amt * dlq_amt)))
 
   diff_month <- get_month_diff(current_date, end_ym)
 
   result_score <- ifelse(end_ym < current_date,
-                         ifelse(delay_cnt < 4, result_score + 100 + diff_month * 10, result_score + 10 + diff_month * 10),
+                         ifelse(delay_cnt < 4, result_score + rate_double + diff_month * rate_single, result_score + rate_single + diff_month * rate_single),
                          result_score)
 
   return(result_score)
 }
 
 get_loan_score <- function(df_loan_new) {
-  result_score <- -10
+  result_score <- -1 * rate_single
   current_date <- as.Date('20181201', format = "%Y%m%d")
   ln_amt <- df_loan_new$LN_AMT
   end_ym <- df_loan_new$YM.x
   long_delay <- df_loan_new$long_delay
-  result_score <- result_score - (ln_amt * 0.001)
+  result_score <- result_score - (ln_amt * rate_amt)
   result_score <- ifelse(end_ym < current_date & is.na(df_loan_new$DLQ_YM),
-                         ifelse(!is.na(long_delay) & long_delay, 10, 100),
+                         ifelse(!is.na(long_delay) & long_delay, rate_single, rate_double),
                          0) + result_score
   return(result_score)
 }
@@ -82,7 +88,7 @@ df_cdopn_new <- count_cdopn %>%
   summarize(cd_score = min(CD_OPN_YM))
 df_result <- merge(df_result, df_cdopn_new, by = "JOIN_KEY", all.x = TRUE)
 df_result$cd_score <- as.integer(2019 - as.integer(df_result$cd_score / 100))
-df_result$cd_score <- ifelse(df_result$long_delay, df_result$cd_score*10, df_result$cd_score*100)
+df_result$cd_score <- ifelse(df_result$long_delay, df_result$cd_score*rate_single, df_result$cd_score*rate_double)
 df_result[is.na(df_result$cd_score),]$cd_score <- 0
 rm("df_cdopn_new", "count_cdopn")
 
@@ -110,17 +116,17 @@ df_result[is.na(df_result$loan_score),]$loan_score <- 0
 
 ##최종 점수
 
-df_result$final_score <- 700 + ifelse(df_result$long_delay == 1,
-                                df_result$cd_score / 100 * 9.4 + df_result$dlq_score / 100 * 47.8 + df_result$loan_score / 100 * 42.8,
-                                 df_result$cd_score / 100 * 15 + df_result$dlq_score / 100 * 45 + df_result$loan_score / 100 * 40)
+df_result$final_score <- 700 + df_result$cd_score / 100 * 9.4 + df_result$dlq_score / 100 * 47.8 + df_result$loan_score / 100 * 42.8
+
 df_final <- df_result[,c("JOIN_KEY","final_score")]
 rm(list = setdiff(ls(), c("df_final", "df_result")))
 df_final[df_final$final_score > 1000,]$final_score <- 1000
 df_final[df_final$final_score < 0,]$final_score <- 0
 df_final$final_score <- df_final$final_score - df_final$final_score %% 100
 df_final_count <- count(df_final, final_score)
+show_rate <- df_final_count$n
 
 ##실제 비중
 real_rate <- c(39.53,26.07,26.94,1.72,0.38,0.16,4.69,0.45,0.06)
-# 39.53 26.07 26.94  1.72  0.38  0.16  4.69  0.45  0.02
-real_rate / 46709542 * 100
+# 791 521 539 34 8 3 94 9 1
+real_rate <- round(real_rate * 20)
