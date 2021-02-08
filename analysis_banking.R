@@ -17,11 +17,11 @@ df_id_loan_sum <- merge(df_id, df_loan_sum, by="JOIN_KEY", all.y = TRUE)
 
 df_mean_result <- df_id_loan_sum %>% group_by(age) %>%
   summarise(AMT = round(mean(SUM_AMT)), TYPE = "mean")
-df_temp <- df_id_loan_sum %>% group_by(age) %>%
+df_median_result <- df_id_loan_sum %>% group_by(age) %>%
   summarise(AMT = round(median(SUM_AMT)), TYPE = "median")
-df_mean_result <- rbind(df_mean_result, df_temp)
+df_result <- rbind(df_mean_result, df_median_result)
 
-ggplot(df_mean_result, aes(age, AMT, fill=df_mean_result$TYPE)) + geom_bar(stat='identity', position = 'dodge') +
+ggplot(df_result, aes(age, AMT, fill=df_result$TYPE)) + geom_bar(stat='identity', position = 'dodge') +
   geom_text(aes(y=AMT,label=AMT))
 
 # 2. 연체금액 -> 연체횟수에 대한 상관관계

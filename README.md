@@ -62,7 +62,7 @@ age(연령대)로 그룹화하여, AMT와 TYPE 컬럼을 생성시킨다.
 마지막으로 rbind 함수로 이 두 데이터프레임을 병합시켰다.
 
 ```
-ggplot(df_mean_result, aes(age, AMT, fill=df_mean_result$TYPE)) + geom_bar(stat='identity', position = 'dodge') +
+ggplot(df_result, aes(age, AMT, fill=df_result$TYPE)) + geom_bar(stat='identity', position = 'dodge') +
   geom_text(aes(y=AMT,label=AMT))
 ```
 
