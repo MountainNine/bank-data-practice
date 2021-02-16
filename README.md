@@ -89,6 +89,7 @@ cor.test(df_delay_new$DLQ_COUNT, df_delay_new$DLQ_AMT)
 group_by와 summarise 함수를 통해 DLQ_COUNT 컬럼(개별 연체 기간)을 포함한 데이터프레임을 생성한다.
 그 다음, DLQ_AMT(개별 연체액)과 DLQ_COUNT 컬럼을 산점도로 표시하면 다음과 같다.
 ![](https://github.com/MountainNine/bank-data-practice/blob/master/picture/scatter01.png)
+
 이때, 개별 연체액이 1500000인 데이터 때문에 실제와는 다른 결과가 발생할 수 있다.
 따라서, 두 번째 줄에서 보이듯이 이상치를 제거해줬다.
 이를 산점도로 다시 표시하면 다음과 같고,
@@ -120,8 +121,10 @@ cor.test(df_delay_final$DLQ_CNT, df_delay_final$DLQ_AMT)
 이번에는 개별 연체액의 총합인 DLQ_CNT 컬럼과 개별 연체 기간의 총합인 DLQ_AMT를 포함한 데이터프레임을 생성했다.
 이를 산점도로 표시하면 다음과 같다.
 ![](https://github.com/MountainNine/bank-data-practice/blob/master/picture/scatter03.png)
+
 여기서도 이상치가 발생하므로, 두 번째 줄처럼 범위를 지정해서 이를 제거해준 뒤, 다시 산점도로 나타내면 다음과 같고,
 ![](https://github.com/MountainNine/bank-data-practice/blob/master/picture/scatter04.png)
+
 cor.test 함수로 상관분석을 실행하면 다음과 같은 결과가 나온다.
 ```
 data:  df_delay_final$DLQ_CNT and df_delay_final$DLQ_AMT
