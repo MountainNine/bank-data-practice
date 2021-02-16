@@ -122,7 +122,7 @@ cor.test(df_delay_final$DLQ_CNT, df_delay_final$DLQ_AMT)
 이를 산점도로 표시하면 다음과 같다.
 ![](https://github.com/MountainNine/bank-data-practice/blob/master/picture/scatter03.png)
 
-여기서도 이상치가 발생하므로, 두 번째 줄처럼 범위를 지정해서 이를 제거해준 뒤, 다시 산점도로 나타내면 다음과 같고,
+여기서도 이상치가 발생하므로, 두 번째 줄처럼 범위를 지정해서 이를 제거해준 뒤, 산점도로 나타내면 다음과 같고,
 ![](https://github.com/MountainNine/bank-data-practice/blob/master/picture/scatter04.png)
 
 cor.test 함수로 상관분석을 실행하면 다음과 같은 결과가 나온다.
