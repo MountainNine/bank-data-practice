@@ -35,9 +35,7 @@ df_delay_new$DLQ_AMT <- ifelse(df_delay_new$DLQ_AMT < 500000, df_delay_new$DLQ_A
 ggplot(df_delay_new, aes(x=DLQ_COUNT, y=DLQ_AMT)) + geom_point()
 cor.test(df_delay_new$DLQ_COUNT, df_delay_new$DLQ_AMT)
 
-df_delay_final <- df_delay_new %>% group_by(JOIN_KEY) %>% summarise(DLQ_CNT = sum(DLQ_COUNT), DLQ_AMT = sum(DLQ_AMT))
+df_delay_final <- df_delay_new %>% group_by(JOIN_KEY) %>% summarise(DLQ_CNT = mean(DLQ_COUNT), DLQ_AMT = sum(DLQ_AMT))
 df_delay_final <- subset(df_delay_final,DLQ_CNT < 100 & DLQ_AMT < 500000)
 ggplot(df_delay_final, aes(x=DLQ_CNT, y=DLQ_AMT)) + geom_point()
 cor.test(df_delay_final$DLQ_CNT, df_delay_final$DLQ_AMT)
-
-# 3. 카드개설 수 -> 대출 금액의 회귀분석

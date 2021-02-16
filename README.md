@@ -7,9 +7,9 @@ CreDB는 신용정보원에 저장된 신용정보를 표본추출한 뒤,
 이를 비식별 조치하여 교육 목적으로 이용자에게 제공하는 서비스이다. 
 내가 받은 데이터는 light 버전으로, 2000명의 대출,연체,카드개설정보가 담겨 있다.
 
-먼저 이 데이터로 연령별 대출액의 대표값을 구하겠다.
+## 연령별 대출액의 대표값
 
-## 코드 작성
+먼저 이 데이터로 연령별 대출액의 대표값을 구하겠다.
 
 ``` library(dplyr)
 library(ggplot2)
@@ -71,10 +71,72 @@ ggplot(df_result, aes(age, AMT, fill=df_result$TYPE)) + geom_bar(stat='identity'
 
 평균값과 중위값의 차이가 꽤나 크다는 점을 볼 수 있다.
 
+## 연체액과 연체 기간 상관분석
+
+```
+rm("df_id_loan_sum", "df_loan_new", "df_loan_sum", "df_mean_result", "df_median_result", "df_result")
+```
+
+먼저 위 대표값들을 구하는 과정에서 만든 데이터프레임들을 제거한다.
+
+```
+df_delay_new <- df_delay %>% group_by(JOIN_KEY, COM_KEY, SCTR_CD,DLQ_TYPE, DLQ_CD_1, DLQ_CD_2, DLQ_YM,DLQ_AMT) %>%
+  summarise(DLQ_COUNT = n())
+df_delay_new$DLQ_AMT <- ifelse(df_delay_new$DLQ_AMT < 500000, df_delay_new$DLQ_AMT, NA)
+ggplot(df_delay_new, aes(x=DLQ_COUNT, y=DLQ_AMT)) + geom_point()
+cor.test(df_delay_new$DLQ_COUNT, df_delay_new$DLQ_AMT)
+```
+group_by와 summarise 함수를 통해 DLQ_COUNT 컬럼(개별 연체 기간)을 포함한 데이터프레임을 생성한다.
+그 다음, DLQ_AMT(개별 연체액)과 DLQ_COUNT 컬럼을 산점도로 표시하면 다음과 같다.
+![](https://github.com/MountainNine/bank-data-practice/blob/master/picture/scatter01.png)
+이때, 개별 연체액이 1500000인 데이터 때문에 실제와는 다른 결과가 발생할 수 있다.
+따라서, 두 번째 줄에서 보이듯이 이상치를 제거해줬다.
+이를 산점도로 다시 표시하면 다음과 같고,
+![](https://github.com/MountainNine/bank-data-practice/blob/master/picture/scatter02.png)
+
+cor.test 함수로 상관분석을 실행하면 다음과 같은 결과가 나온다.
+
+```
+data:  df_delay_new$DLQ_COUNT and df_delay_new$DLQ_AMT
+t = 1.162, df = 880, p-value = 0.2455
+alternative hypothesis: true correlation is not equal to 0
+95 percent confidence interval:
+ -0.02694022  0.10488202
+sample estimates:
+      cor 
+0.0391412 
+```
+
+t검정 값은 1.162가 나오고, p-value(유의확률)의 값은 0.2455로, 95%의 신뢰수준에서 개별 연체액과 개별 연체 횟수 간 상관관계는 낮다고 볼 수 있다.
+
+그렇다면 개인별 총 연체액과 총 연체 기간 간 상관관계는 어떨까. 코드는 다음과 같다.
+
+```
+df_delay_final <- df_delay_new %>% group_by(JOIN_KEY) %>% summarise(DLQ_CNT = sum(DLQ_COUNT), DLQ_AMT = sum(DLQ_AMT))
+df_delay_final <- subset(df_delay_final,DLQ_CNT < 100 & DLQ_AMT < 500000)
+ggplot(df_delay_final, aes(x=DLQ_CNT, y=DLQ_AMT)) + geom_point()
+cor.test(df_delay_final$DLQ_CNT, df_delay_final$DLQ_AMT)
+```
+이번에는 개별 연체액의 총합인 DLQ_CNT 컬럼과 개별 연체 기간의 총합인 DLQ_AMT를 포함한 데이터프레임을 생성했다.
+이를 산점도로 표시하면 다음과 같다.
+![](https://github.com/MountainNine/bank-data-practice/blob/master/picture/scatter03.png)
+여기서도 이상치가 발생하므로, 두 번째 줄처럼 범위를 지정해서 이를 제거해준 뒤, 다시 산점도로 나타내면 다음과 같고,
+![](https://github.com/MountainNine/bank-data-practice/blob/master/picture/scatter04.png)
+cor.test 함수로 상관분석을 실행하면 다음과 같은 결과가 나온다.
+```
+data:  df_delay_final$DLQ_CNT and df_delay_final$DLQ_AMT
+t = 4.2706, df = 385, p-value = 2.459e-05
+alternative hypothesis: true correlation is not equal to 0
+95 percent confidence interval:
+ 0.1154312 0.3058730
+sample estimates:
+      cor 
+0.2126708 
+```
+t-검정 값은 4.2706이고, p-value 값은 2.459e-05으로, 이는 95% 신뢰수준에서 유의수준인 0.05보다 낮다고 볼 수 있다.
+따라서 총 연체액과 총 연체 기간 간 상관관계는 있다고 볼 수가 있다.
+
 ## 느낀 점
 
 사실 처음에는 개인신용 데이터를 기반으로 신용점수를 계산해보는 코드를 작성하려 했으나, 생각만큼 잘 되지는 않았다.
-만약 데이터에 신용점수까지 포함되어 있었다면 회귀분석을 통해 구할 수 있었을까... 
-
-여하튼 신용점수 계산에서 데이터 분석 연습으로 선회했고, 그 첫 번째로 연령대별 대출액 대표값을 구해보았다. 
-다음 글에서는 연체금액과 연체횟수의 상관관계를 구해볼 예정이다.
+만약 데이터에 신용점수까지 포함되어 있었다면 회귀분석을 통해 구할 수 있었을까...
